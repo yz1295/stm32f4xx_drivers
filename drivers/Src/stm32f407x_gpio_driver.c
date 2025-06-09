@@ -106,7 +106,8 @@ void GPIO_Init(GPIO_Handle_t *pGPIOHandle)
 	{
 		//non-intertupt mode
 		temp = (pGPIOHandle->GPIO_PinConfig.GPIO_PinMode << (2*pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber));
-		pGPIOHandle->pGPIOx->MODER =temp;
+		pGPIOHandle->pGPIOx->MODER &= ~(0x3 << (2 * pinNumber));
+		pGPIOHandle->pGPIOx->MODER |= temp;
 		temp = 0;
 
 		 // GPT: safe practice of modifying only the targeted pin configuration, rather than overwriting the entire register.
@@ -172,9 +173,20 @@ void GPIO_Init(GPIO_Handle_t *pGPIOHandle)
 
 
 	//5.configure the alternate functionality
-    if(pGPIOHandle->GPIO_PinConfig.GPIO_PinMode == GPIO_MODE_ANALOG )
+    if(pGPIOHandle->GPIO_PinConfig.GPIO_PinMode == GPIO_MODE_ALTFN )
     {
-    	//configure the alternate function registers
+    	//configure the alternate functionality registers
+    	uint8_t temp1=0;//temp1: AFRL or AFRH ;
+    	uint8_t temp2 = 0;//temp2: which pin;
+
+    	temp1 = pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber / 8;
+    	temp2 = pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber % 8;
+
+    	pGPIOHandle->pGPIOx->AFR[temp1] &= ~(0xF << (4*temp2));
+    	pGPIOHandle->pGPIOx->AFR[temp1] |= (pGPIOHandle->GPIO_PinConfig.GPIO_PinAltFunMode << (4*temp2));
+
+
+
 
 
     }
