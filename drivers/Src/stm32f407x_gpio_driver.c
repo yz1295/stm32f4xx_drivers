@@ -110,7 +110,7 @@ void GPIO_Init(GPIO_Handle_t *pGPIOHandle)
 		pGPIOHandle->pGPIOx->MODER |= temp;
 		temp = 0;
 
-		 // GPT: safe practice of modifying only the targeted pin configuration, rather than overwriting the entire register.
+		 // ASK GPT: safe practice of modifying only the targeted pin configuration, rather than overwriting the entire register.
 		/*if(pGPIOHandle->GPIO_PinConfig.GPIO_PinMode <= GPIO_MODE_ANALOG)
 {
 			uint32_t temp = 0;
@@ -352,18 +352,71 @@ void GPIO_ToggleOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t PinNumber)
 
 /*
  * IRQ Configuration and ISR handling
+ * please check ARM Cortex-M4 Manual -> 4.2 Nested Vectored Interrupt Controller for more details
  */
 void GPIO_IRQInterruptConfig(uint8_t IRQNumber, uint8_t EnorDi)
 {
 
+	if(EnorDi == ENABLE)
+	{
+		if(IRQNumber <= 31)
+		{
+			//program ISER0 register
+			*NVIC_ISER0 |= ( 1 << IRQNumber );
+
+		}else if(IRQNumber > 31 && IRQNumber < 64 ) //32 to 63
+		{
+			//program ISER1 register
+			*NVIC_ISER1 |= ( 1 << (IRQNumber % 32) );
+		}
+		else if(IRQNumber >= 64 && IRQNumber < 96 )
+		{
+			//program ISER2 register //64 to 95
+			*NVIC_ISER2 |= ( 1 << (IRQNumber % 64) );
+		}
+	}else
+	{
+		if(IRQNumber <= 31)
+		{
+			//program ICER0 register
+			*NVIC_ICER0 |= ( 1 << IRQNumber );
+		}else if(IRQNumber > 31 && IRQNumber < 64 )
+		{
+			//program ICER1 register
+			*NVIC_ICER1 |= ( 1 << (IRQNumber % 32) );
+		}
+		else if(IRQNumber >= 64 && IRQNumber < 96 )
+		{
+			//program ICER2 register
+			*NVIC_ICER2 |= ( 1 << (IRQNumber % 64) );
+		}
+	}
+
 }
+
+
 void GPIO_IRQPriorityConfig(uint8_t IRQNumber, uint32_t IRQPriority)
 {
+    uint8_t temp1 = IRQNumber / 4;              // IPR register index
+    uint8_t temp2 = (IRQNumber % 4) * 8;        // Bit offset in IPR register
 
+    // Clear existing priority bits (only top 4 bits are used)
+    *(NVIC_PR_BASE_ADDR + temp1) &= ~(0xF << (temp2 + NO_PR_BITS_IMPLEMENTED));
+
+    // Set new priority value in upper 4 bits
+    *(NVIC_PR_BASE_ADDR + temp1) |=  (IRQPriority << (temp2 + NO_PR_BITS_IMPLEMENTED));
 }
+
+
+//PR is write to one (w1c) register
 void GPIO_IRQHandling(uint8_t PinNumber)
 {
+	//clear the exti pr register corresponding to the pin number
+	if(EXTI->PR & ( 1 << PinNumber))
+	{
+		//clear
+		EXTI->PR = ( 1 << PinNumber);
+	}
 
 }
-
 

@@ -6,6 +6,6 @@
 ../drivers/Src/stm32f407x_gpio_driver.c:319:6:GPIO_WriteToOutputPin	16	static
 ../drivers/Src/stm32f407x_gpio_driver.c:337:6:GPIO_WriteToOutputPort	16	static
 ../drivers/Src/stm32f407x_gpio_driver.c:346:6:GPIO_ToggleOutputPin	16	static
-../drivers/Src/stm32f407x_gpio_driver.c:356:6:GPIO_IRQInterruptConfig	16	static
-../drivers/Src/stm32f407x_gpio_driver.c:360:6:GPIO_IRQPriorityConfig	16	static
-../drivers/Src/stm32f407x_gpio_driver.c:364:6:GPIO_IRQHandling	16	static
+../drivers/Src/stm32f407x_gpio_driver.c:357:6:GPIO_IRQInterruptConfig	16	static
+../drivers/Src/stm32f407x_gpio_driver.c:398:6:GPIO_IRQPriorityConfig	24	static
+../drivers/Src/stm32f407x_gpio_driver.c:412:6:GPIO_IRQHandling	16	static
