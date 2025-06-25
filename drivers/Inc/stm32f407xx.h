@@ -362,6 +362,25 @@ typedef struct
 #define GPIOH_REG_RESET()  do { RCC->AHB1RSTR |= (1 << 7); RCC->AHB1RSTR &= ~(1 << 7); } while(0)
 #define GPIOI_REG_RESET()  do { RCC->AHB1RSTR |= (1 << 8); RCC->AHB1RSTR &= ~(1 << 8); } while(0)
 
+// SPI1 reset on APB2 bus
+#define SPI1_RESET()  do { \
+    RCC->APB2RSTR |=  (1 << 12); \
+    RCC->APB2RSTR &= ~(1 << 12); \
+} while(0)
+
+// SPI2 reset on APB1 bus
+#define SPI2_RESET()  do { \
+    RCC->APB1RSTR |=  (1 << 14); \
+    RCC->APB1RSTR &= ~(1 << 14); \
+} while(0)
+
+// SPI3 reset on APB1 bus
+#define SPI3_RESET()  do { \
+    RCC->APB1RSTR |=  (1 << 15); \
+    RCC->APB1RSTR &= ~(1 << 15); \
+} while(0)
+
+
 /*
  * returns port code for given GPIOx base address
  * This macro returns a code( between 0 to 8) for a given GPIO base address(x)
@@ -442,6 +461,30 @@ typedef struct
 #define SPI_CR1_BIDIOE     			 	14
 #define SPI_CR1_BIDIMODE      			15
 
+/*
+ * Bit position definitions SPI_CR2
+ */
+#define SPI_CR2_RXDMAEN		 			0
+#define SPI_CR2_TXDMAEN				 	1
+#define SPI_CR2_SSOE				 	2
+#define SPI_CR2_FRF						4
+#define SPI_CR2_ERRIE					5
+#define SPI_CR2_RXNEIE				 	6
+#define SPI_CR2_TXEIE					7
+
+
+/*
+ * Bit position definitions SPI_SR
+ */
+#define SPI_SR_RXNE						0
+#define SPI_SR_TXE				 		1
+#define SPI_SR_CHSIDE				 	2
+#define SPI_SR_UDR					 	3
+#define SPI_SR_CRCERR				 	4
+#define SPI_SR_MODF					 	5
+#define SPI_SR_OVR					 	6
+#define SPI_SR_BSY					 	7
+#define SPI_SR_FRE					 	8
 
 
 #include "stm32f407x_gpio_driver.h"

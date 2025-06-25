@@ -5,7 +5,7 @@
  */
 #include "stm32f407xx_spi_driver.h"
 
-/*********************************************************************
+/***********************************************************
  * @fn      		  - SPI_PeriClockControl
  *
  * @brief             -
@@ -123,20 +123,31 @@ void SPI_Init(SPI_Handle_t *pSPIHandle)
 /*********************************************************************
  * @fn      		  - SPI_DeInit
  *
- * @brief             -
+ * @brief             - Resets the SPI peripheral by asserting and deasserting
+ *                      its reset bit in the RCC reset register.
  *
- * @param[in]         -
- * @param[in]         -
- * @param[in]         -
+ * @param[in]         - pSPIx: Pointer to the SPI peripheral (SPI1, SPI2, or SPI3)
  *
- * @return            -
+ * @return            - None
  *
- * @Note              -
+ * @Note              - Only SPI1, SPI2, and SPI3 are supported in this function.
+ *                      This does not disable SPI clocks or reset GPIO pins.
+ *********************************************************************/
 
- */
 void SPI_DeInit(SPI_RegDef_t *pSPIx)
 {
-
-
+    if (pSPIx == SPI1)
+    {
+        SPI1_RESET();
+    }
+    else if (pSPIx == SPI2)
+    {
+        SPI2_RESET();
+    }
+    else if (pSPIx == SPI3)
+    {
+        SPI3_RESET();
+    }
 }
+
 
