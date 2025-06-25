@@ -150,4 +150,60 @@ void SPI_DeInit(SPI_RegDef_t *pSPIx)
     }
 }
 
+uint8_t SPI_GetFlagStatus(SPI_RegDef_t *pSPIx,uint32_t FlagName)
+{
+	if(pSPIx->SR & FlagName)
+	{
+		return Flag_SET;
+	}
+	return FLAG_RESET;
 
+}
+/*********************************************************************
+ * @fn      		  - SPI_SendData
+ *
+ * @brief             - Sends data over SPI in a non-blocking (polling-based) manner.
+ *
+ * @param[in]         - pSPIx: Pointer to SPI peripheral base address (SPI1, SPI2, etc.)
+ * @param[in]         - pTxBuffer: Pointer to the data buffer to be transmitted
+ * @param[in]         - Len: Number of bytes to be transmitted
+ *
+ * @return            - None
+ *
+ * @Note              - This function uses polling, but still blocks the CPU until
+ *                      all data is sent. It supports both 8-bit and 16-bit DFF modes.
+ *                      For true non-blocking behavior, use interrupt- or DMA-based send.
+ *********************************************************************/
+
+void SPI_SendData(SPI_RegDef_t *pSPIx,uint8_t *pTxBuffer,uint32_t Len)
+{
+	while(Len >0)
+	{
+		//1.wait till Tx buffer is  empty
+		while(SPI_GetFlagStatus(pSPIx,SPI_TXE_FLAG)== FLAG_RESET);
+		//while(!(pSPIx->SR &(1<<1)));
+
+		//check the DFF bit in CR1
+		if(pSPIx->CR1&(1<<SPI_CR1_DFF))
+		{
+			// 16 bit DFF
+			//load the data into the DR
+			pSPI->DR = *((uint16_t*)pTxBuffer);
+			Len-=2;// 16 bit, I send 2 bytes so decrease 2
+
+			(uint16_t*)pTxBuffer++;
+
+
+		}
+		else
+		{
+			//8 bit DFF
+			pSPI->DR = *pTxBuffer;
+			Len--;
+			*pTxBuffer++;
+		}
+
+
+	}
+
+}
