@@ -9,7 +9,9 @@
 #define INC_STM32F407XX_H_
 
 #include <stdint.h>
+#include <stddef.h>
 #define __vo     					volatile
+#define __weak                    __attribute__((weak))
 
 
 /**********************************START:Processor Specific Details **********************************/
@@ -82,7 +84,7 @@
 #define GPIOI_BASEADDR				0x40022000U
 #define GPIOJ_BASEADDR				0x40022400U
 #define GPIOK_BASEADDR				0x40022800U
-#define RCC_BASEADDR			    (AHB1PERIPH_BASEADDR+0x3800)
+#define RCC_BASEADDR			    0x40023800U
 
 
 
@@ -438,6 +440,8 @@ typedef struct
 #define RESET 				DISABLE
 #define GPIO_PIN_SET        SET
 #define GPIO_PIN_RESET      RESET
+#define FLAG_RESET          RESET
+#define FLAG_SET            SET
 
 
 /******************************************************************************************
@@ -488,7 +492,8 @@ typedef struct
 
 
 #include "stm32f407x_gpio_driver.h"
-#include "stm32f407xx_spi_driver.h"
+//#include "stm32f407xx_spi_driver.h"
+#include "stdSPI.h"
 
 
 #endif /* INC_STM32F407XX_H_ */

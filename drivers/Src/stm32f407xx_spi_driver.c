@@ -72,6 +72,8 @@ void SPI_PeriClockControl(SPI_RegDef_t *pSPIx, uint8_t EnorDi)
  */
 void SPI_Init(SPI_Handle_t *pSPIHandle)
 {
+	//Enable the SPI clock
+	SPI_PeriClockControl(pSPIHandle->pSPIx,ENABLE);
 
 	//peripheral clock enable
 
@@ -154,7 +156,7 @@ uint8_t SPI_GetFlagStatus(SPI_RegDef_t *pSPIx,uint32_t FlagName)
 {
 	if(pSPIx->SR & FlagName)
 	{
-		return Flag_SET;
+		return FLAG_SET;
 	}
 	return FLAG_RESET;
 
@@ -175,35 +177,104 @@ uint8_t SPI_GetFlagStatus(SPI_RegDef_t *pSPIx,uint32_t FlagName)
  *                      For true non-blocking behavior, use interrupt- or DMA-based send.
  *********************************************************************/
 
-void SPI_SendData(SPI_RegDef_t *pSPIx,uint8_t *pTxBuffer,uint32_t Len)
+void SPI_SendData(SPI_RegDef_t *pSPIx, uint8_t *pTxBuffer, uint32_t Len)
 {
-	while(Len >0)
+	while (Len > 0)
 	{
-		//1.wait till Tx buffer is  empty
-		while(SPI_GetFlagStatus(pSPIx,SPI_TXE_FLAG)== FLAG_RESET);
-		//while(!(pSPIx->SR &(1<<1)));
+		while (SPI_GetFlagStatus(pSPIx, SPI_TXE_FLAG) == FLAG_RESET);
 
-		//check the DFF bit in CR1
-		if(pSPIx->CR1&(1<<SPI_CR1_DFF))
+		if (pSPIx->CR1 & (1 << SPI_CR1_DFF))
 		{
-			// 16 bit DFF
-			//load the data into the DR
-			pSPI->DR = *((uint16_t*)pTxBuffer);
-			Len-=2;// 16 bit, I send 2 bytes so decrease 2
-
-			(uint16_t*)pTxBuffer++;
-
-
+			// 16-bit DFF
+			pSPIx->DR = *((uint16_t*)pTxBuffer);  // Correct pointer cast
+			Len -= 2;
+			pTxBuffer += 2;  // Move 2 bytes forward
 		}
 		else
 		{
-			//8 bit DFF
-			pSPI->DR = *pTxBuffer;
+			// 8-bit DFF
+			pSPIx->DR = *pTxBuffer;
 			Len--;
-			*pTxBuffer++;
+			pTxBuffer++;  // Move 1 byte forward
 		}
+	}
+}
+/*********************************************************************
+ * @fn      		  - SPI_PeripheralControl
+ *
+ * @brief             - Enables or disables the SPI peripheral.
+ *
+ * @param[in]         - pSPIx: Pointer to the SPI peripheral (SPI1, SPI2, or SPI3)
+ * @param[in]         - EnOrDi: ENABLE to turn on the peripheral, DISABLE to turn it off
+ *
+ * @return            - None
+ *
+ * @Note              - This function sets or clears the SPE (SPI Enable) bit in the CR1 register.
+ *                      The SPI must be disabled (SPE=0) before configuring certain registers.
+ *********************************************************************/
 
-
+void SPI_PeripheralControl(SPI_RegDef_t *pSPIx, uint8_t EnOrDi)
+{
+	if(EnOrDi == ENABLE)
+	{
+		pSPIx->CR1 |=  (1 << SPI_CR1_SPE);
+	}else
+	{
+		pSPIx->CR1 &=  ~(1 << SPI_CR1_SPE);
 	}
 
+
 }
+/*********************************************************************
+ * @fn      		  - SPI_SSIConfig
+ *
+ * @brief             -
+ *
+ * @param[in]         -
+ * @param[in]         -
+ * @param[in]         -
+ *
+ * @return            -
+ *
+ * @Note              -
+
+ */
+void  SPI_SSIConfig(SPI_RegDef_t *pSPIx, uint8_t EnOrDi)
+{
+	if(EnOrDi == ENABLE)
+	{
+		pSPIx->CR1 |=  (1 << SPI_CR1_SSI);
+	}else
+	{
+		pSPIx->CR1 &=  ~(1 << SPI_CR1_SSI);
+	}
+
+
+}
+/*********************************************************************
+ * @fn      		  - SPI_SSOEConfig
+ *
+ * @brief             -
+ *
+ * @param[in]         -
+ * @param[in]         -
+ * @param[in]         -
+ *
+ * @return            -
+ *
+ * @Note              -
+
+ */
+void  SPI_SSOEConfig(SPI_RegDef_t *pSPIx, uint8_t EnOrDi)
+{
+	if(EnOrDi == ENABLE)
+	{
+		pSPIx->CR2 |=  (1 << SPI_CR2_SSOE);
+	}else
+	{
+		pSPIx->CR2 &=  ~(1 << SPI_CR2_SSOE);
+	}
+
+
+}
+
