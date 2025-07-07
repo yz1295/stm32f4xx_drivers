@@ -453,4 +453,234 @@ uint8_t USART_ReceiveDataIT(USART_Handle_t *pUSARTHandle, uint8_t *pRxBuffer, ui
 
 	return rxstate;
 }
+/*********************************************************************
+ * @fn      		  - USART_IRQHandling
+ *
+ * @brief             - Interrupt handler for USART
+ *
+ * @param[in]         - pUSARTHandle : Pointer to USART handle
+ *
+ * @return            - None
+ *
+ * @Note              - Handles TXE, TC, RXNE, CTS, IDLE, ORE, FE, NE errors
+ */
+void USART_IRQHandling(USART_Handle_t *pUSARTHandle)
+{
+	uint32_t temp1, temp2;
 
+	uint16_t *pdata;
+
+	/************** Check for TC flag (Transmission Complete) ****************/
+	temp1 = pUSARTHandle->pUSARTx->SR & (1 << USART_SR_TC);
+	temp2 = pUSARTHandle->pUSARTx->CR1 & (1 << USART_CR1_TCIE);
+
+	if (temp1 && temp2)
+	{
+		if (pUSARTHandle->TxBusyState == USART_BUSY_IN_TX && pUSARTHandle->TxLen == 0)
+		{
+			// Clear TC flag by reading SR and then DR
+			uint32_t dummy = pUSARTHandle->pUSARTx->SR;
+			dummy = pUSARTHandle->pUSARTx->DR;
+			(void)dummy;
+
+			// Disable TCIE
+			pUSARTHandle->pUSARTx->CR1 &= ~(1 << USART_CR1_TCIE);
+
+			// Reset state
+			pUSARTHandle->TxBusyState = USART_READY;
+			pUSARTHandle->pTxBuffer = NULL;
+			pUSARTHandle->TxLen = 0;
+
+			// Callback
+			USART_ApplicationEventCallback(pUSARTHandle, USART_EVENT_TX_CMPLT);
+		}
+	}
+
+	/************** Check for TXE flag (Transmit Data Register Empty) ****************/
+	temp1 = pUSARTHandle->pUSARTx->SR & (1 << USART_SR_TXE);
+	temp2 = pUSARTHandle->pUSARTx->CR1 & (1 << USART_CR1_TXEIE);
+
+	if (temp1 && temp2)
+	{
+		if (pUSARTHandle->TxBusyState == USART_BUSY_IN_TX)
+		{
+			if (pUSARTHandle->TxLen > 0)
+			{
+				if (pUSARTHandle->USART_Config.USART_WordLength == USART_WORDLEN_9BITS)
+				{
+					pdata = (uint16_t *)pUSARTHandle->pTxBuffer;
+					pUSARTHandle->pUSARTx->DR = (*pdata & 0x01FF);
+
+					if (pUSARTHandle->USART_Config.USART_ParityControl == USART_PARITY_DISABLE)
+					{
+						pUSARTHandle->pTxBuffer += 2;
+						pUSARTHandle->TxLen -= 2;
+					}
+					else
+					{
+						pUSARTHandle->pTxBuffer += 1;
+						pUSARTHandle->TxLen -= 1;
+					}
+				}
+				else
+				{
+					pUSARTHandle->pUSARTx->DR = (*pUSARTHandle->pTxBuffer & 0xFF);
+					pUSARTHandle->pTxBuffer++;
+					pUSARTHandle->TxLen--;
+				}
+			}
+			if (pUSARTHandle->TxLen == 0)
+			{
+				// Disable TXEIE
+				pUSARTHandle->pUSARTx->CR1 &= ~(1 << USART_CR1_TXEIE);
+			}
+		}
+	}
+
+	/************** Check for RXNE flag (Received Data Ready) ****************/
+	temp1 = pUSARTHandle->pUSARTx->SR & (1 << USART_SR_RXNE);
+	temp2 = pUSARTHandle->pUSARTx->CR1 & (1 << USART_CR1_RXNEIE);
+
+	if (temp1 && temp2)
+	{
+		if (pUSARTHandle->RxBusyState == USART_BUSY_IN_RX)
+		{
+			if (pUSARTHandle->RxLen > 0)
+			{
+				if (pUSARTHandle->USART_Config.USART_WordLength == USART_WORDLEN_9BITS)
+				{
+					if (pUSARTHandle->USART_Config.USART_ParityControl == USART_PARITY_DISABLE)
+					{
+						*((uint16_t *)pUSARTHandle->pRxBuffer) = (pUSARTHandle->pUSARTx->DR & 0x01FF);
+						pUSARTHandle->pRxBuffer += 2;
+						pUSARTHandle->RxLen -= 2;
+					}
+					else
+					{
+						*pUSARTHandle->pRxBuffer = (uint8_t)(pUSARTHandle->pUSARTx->DR & 0xFF);
+						pUSARTHandle->pRxBuffer++;
+						pUSARTHandle->RxLen--;
+					}
+				}
+				else
+				{
+					if (pUSARTHandle->USART_Config.USART_ParityControl == USART_PARITY_DISABLE)
+					{
+						*pUSARTHandle->pRxBuffer = (uint8_t)(pUSARTHandle->pUSARTx->DR & 0xFF);
+					}
+					else
+					{
+						*pUSARTHandle->pRxBuffer = (uint8_t)(pUSARTHandle->pUSARTx->DR & 0x7F);
+					}
+					pUSARTHandle->pRxBuffer++;
+					pUSARTHandle->RxLen--;
+				}
+			}
+
+			if (pUSARTHandle->RxLen == 0)
+			{
+				pUSARTHandle->pUSARTx->CR1 &= ~(1 << USART_CR1_RXNEIE);
+				pUSARTHandle->RxBusyState = USART_READY;
+				USART_ApplicationEventCallback(pUSARTHandle, USART_EVENT_RX_CMPLT);
+			}
+		}
+	}
+
+	/************** Check for CTS flag (Clear to Send) ****************/
+	// Only valid for USART1–USART3
+#if defined(USART1) || defined(USART2) || defined(USART3)
+	temp1 = pUSARTHandle->pUSARTx->SR & (1 << USART_SR_CTS);
+	temp2 = pUSARTHandle->pUSARTx->CR3 & (1 << USART_CR3_CTSE);
+
+	if (temp1 && temp2)
+	{
+		uint32_t dummy = pUSARTHandle->pUSARTx->SR;
+		dummy = pUSARTHandle->pUSARTx->DR;
+		(void)dummy;
+
+		USART_ApplicationEventCallback(pUSARTHandle, USART_EVENT_CTS);
+	}
+#endif
+
+	/************** Check for IDLE flag ****************/
+	temp1 = pUSARTHandle->pUSARTx->SR & (1 << USART_SR_IDLE);
+	temp2 = pUSARTHandle->pUSARTx->CR1 & (1 << USART_CR1_IDLEIE);
+
+	if (temp1 && temp2)
+	{
+		uint32_t dummy = pUSARTHandle->pUSARTx->SR;
+		dummy = pUSARTHandle->pUSARTx->DR;
+		(void)dummy;
+
+		USART_ApplicationEventCallback(pUSARTHandle, USART_EVENT_IDLE);
+	}
+
+	/************** Check for ORE (Overrun Error) ****************/
+	temp1 = pUSARTHandle->pUSARTx->SR & (1 << USART_SR_ORE);
+	temp2 = pUSARTHandle->pUSARTx->CR1 & (1 << USART_CR1_RXNEIE);
+
+	if (temp1 && temp2)
+	{
+		USART_ApplicationEventCallback(pUSARTHandle, USART_ERR_ORE);
+	}
+
+	/************** Check for Framing and Noise Errors (if EIE set) ****************/
+	temp2 = pUSARTHandle->pUSARTx->CR3 & (1 << USART_CR3_EIE);
+	if (temp2)
+	{
+		temp1 = pUSARTHandle->pUSARTx->SR;
+
+		if (temp1 & (1 << USART_SR_FE))
+		{
+			uint32_t dummy = pUSARTHandle->pUSARTx->SR;
+			dummy = pUSARTHandle->pUSARTx->DR;
+			(void)dummy;
+			USART_ApplicationEventCallback(pUSARTHandle, USART_ERR_FE);
+		}
+		if (temp1 & (1 << USART_SR_NE))
+		{
+			uint32_t dummy = pUSARTHandle->pUSARTx->SR;
+			dummy = pUSARTHandle->pUSARTx->DR;
+			(void)dummy;
+			USART_ApplicationEventCallback(pUSARTHandle, USART_ERR_NE);
+		}
+		if (temp1 & (1 << USART_SR_ORE))
+		{
+			USART_ApplicationEventCallback(pUSARTHandle, USART_ERR_ORE);
+		}
+	}
+}
+
+
+
+/*********************************************************************
+ * @fn      		  - USART_ApplicationEventCallback
+ *
+ * @brief             - Weak implementation of an application-level callback
+ *                      function to handle USART events such as transmission
+ *                      complete, reception complete, and error notifications.
+ *
+ * @param[in]         - pUSARTHandle : Pointer to USART handle structure
+ * @param[in]         - event        : Event identifier indicating the USART event
+ *                                     (e.g., USART_EVENT_TX_CMPLT, USART_ERR_ORE)
+ *
+ * @return            - None
+ *
+ * @Note              - This is a __weak function. Users should override it in their
+ *                      application code to define custom behavior when USART events occur.
+ *                      The driver calls this function from within the IRQ handler
+ *                      (USART_IRQHandling) upon relevant status flag changes.
+ *
+ *                      Common events include:
+ *                        - USART_EVENT_TX_CMPLT  : Transmission complete
+ *                        - USART_EVENT_RX_CMPLT  : Reception complete
+ *                        - USART_EVENT_CTS       : CTS (Clear to Send) signal changed
+ *                        - USART_EVENT_IDLE      : IDLE line detected
+ *                        - USART_ERR_FE          : Framing error
+ *                        - USART_ERR_NE          : Noise error
+ *                        - USART_ERR_ORE         : Overrun error
+ *********************************************************************/
+__weak void USART_ApplicationEventCallback(USART_Handle_t *pUSARTHandle, uint8_t event)
+{
+
+}

@@ -9,3 +9,5 @@
 ../drivers/Src/stm32f407xx_usart_driver.c:357:6:USART_ReceiveData	32	static
 ../drivers/Src/stm32f407xx_usart_driver.c:405:9:USART_SendDataIT	32	static
 ../drivers/Src/stm32f407xx_usart_driver.c:437:9:USART_ReceiveDataIT	32	static
+../drivers/Src/stm32f407xx_usart_driver.c:467:6:USART_IRQHandling	48	static
+../drivers/Src/stm32f407xx_usart_driver.c:683:13:USART_ApplicationEventCallback	16	static
