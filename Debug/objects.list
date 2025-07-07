@@ -3,3 +3,4 @@
 "./drivers/Src/stdSPI.o"
 "./drivers/Src/stm32f407x_gpio_driver.o"
 "./drivers/Src/stm32f407xx_i2c_driver.o"
+"./drivers/Src/stm32f407xx_usart_driver.o"
